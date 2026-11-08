@@ -9,6 +9,7 @@ import type { ComparisonFn, Fn } from "./types";
 import {
   getFieldEffects,
   getPageEffects,
+  getTriggeredPageEffect,
   getVisibleFieldData,
   getVisiblePageData,
   getVisibleWidgetIds,
@@ -284,5 +285,121 @@ describe("getVisiblePageData", () => {
         PAGE_2: { WIDGET_OTHER: "visible" },
       }),
     ).toEqual({ WIDGET_CONTROL: "hide", WIDGET_OTHER: "visible" });
+  });
+});
+
+describe("IN / NIN comparison values", () => {
+  it("supports single choice string values as well as multi-select arrays", () => {
+    const single = { GENDER: "female" };
+    const multi = { GENDER: ["female", "other"] };
+
+    expect(
+      isEffectTriggered(
+        buildFn({
+          type: ComparisonType.IN,
+          fieldId: "GENDER",
+          value: "female",
+        }),
+        single,
+      ),
+    ).toBe(true);
+
+    expect(
+      isEffectTriggered(
+        buildFn({
+          type: ComparisonType.IN,
+          fieldId: "GENDER",
+          value: "male",
+        }),
+        single,
+      ),
+    ).toBe(false);
+
+    expect(
+      isEffectTriggered(
+        buildFn({
+          type: ComparisonType.NIN,
+          fieldId: "GENDER",
+          value: "male",
+        }),
+        single,
+      ),
+    ).toBe(true);
+
+    expect(
+      isEffectTriggered(
+        buildFn({
+          type: ComparisonType.IN,
+          fieldId: "GENDER",
+          value: "feminine",
+        }),
+        single,
+      ),
+    ).toBe(false);
+
+    expect(
+      isEffectTriggered(
+        buildFn({
+          type: ComparisonType.IN,
+          fieldId: "GENDER",
+          value: "female",
+        }),
+        multi,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("getTriggeredPageEffect", () => {
+  const createSchema = (targetPageId: string) =>
+    createDocumentSchema({
+      pageIds: ["PAGE_1", "PAGE_2"],
+      pages: {
+        PAGE_1: createPage("PAGE_1", {
+          widgetIds: ["WIDGET_gender"],
+          effectIds: ["EFFECT_male"],
+        }),
+        PAGE_2: createPage("PAGE_2"),
+      },
+      effects: {
+        EFFECT_male: {
+          id: "EFFECT_male",
+          owner: "PAGE_1",
+          type: "page",
+          fn: {
+            type: ComparisonType.IN,
+            fieldId: "WIDGET_gender",
+            value: "male",
+          },
+          action: {
+            type: PageActionType.GO_TO_PAGE,
+            pageId: targetPageId,
+          },
+        },
+      },
+    });
+
+  it("returns the triggered page effect with a single choice value", () => {
+    const effect = getTriggeredPageEffect(createSchema("PAGE_2"), "PAGE_1", {
+      WIDGET_gender: "male",
+    });
+
+    expect(effect?.action.pageId).toBe("PAGE_2");
+  });
+
+  it("returns undefined when the condition is not met", () => {
+    expect(
+      getTriggeredPageEffect(createSchema("PAGE_2"), "PAGE_1", {
+        WIDGET_gender: "female",
+      }),
+    ).toBeUndefined();
+  });
+
+  it("ignores effects that point at a missing page", () => {
+    expect(
+      getTriggeredPageEffect(createSchema("PAGE_MISSING"), "PAGE_1", {
+        WIDGET_gender: "male",
+      }),
+    ).toBeUndefined();
   });
 });

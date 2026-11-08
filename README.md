@@ -163,6 +163,7 @@ The form advances or submits according to page effects:
 
 - If a triggered **page effect** points to an existing page, the form navigates there.
 - Otherwise the current page is treated as complete and the form is submitted.
+- The action button reads **Next** when a triggered page effect will navigate, and **Submit** (or the schema's `submitButtonText`) on pages with no next page.
 - On submit, values from the current page and all previously visited pages are merged and shown in the result table.
 - Values of hidden widgets are excluded from the submitted result.
 

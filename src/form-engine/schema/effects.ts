@@ -18,6 +18,23 @@ export const isFieldWidget = (
 export const isLogicalFn = (fn: Fn): fn is LogicalFn =>
   fn.type === LogicalType.AND || fn.type === LogicalType.OR;
 
+const containsValue = (
+  actualValue: unknown,
+  expectedValue: unknown,
+): boolean => {
+  const expected = String(expectedValue);
+
+  if (Array.isArray(actualValue)) {
+    return actualValue.includes(expected);
+  }
+
+  if (typeof actualValue === "string" || typeof actualValue === "number") {
+    return String(actualValue) === expected;
+  }
+
+  return false;
+};
+
 const compare = (
   type: ComparisonType,
   actualValue: unknown,
@@ -43,16 +60,10 @@ const compare = (
       return Number(actualValue) <= Number(expectedValue);
 
     case ComparisonType.IN:
-      return (
-        Array.isArray(actualValue) &&
-        actualValue.includes(String(expectedValue))
-      );
+      return containsValue(actualValue, expectedValue);
 
     case ComparisonType.NIN:
-      return (
-        Array.isArray(actualValue) &&
-        !actualValue.includes(String(expectedValue))
-      );
+      return !containsValue(actualValue, expectedValue);
 
     default:
       return false;
@@ -123,6 +134,22 @@ const getFieldEffectsById = (
 
 export const getPageEffects = getPageEffectsById;
 export const getFieldEffects = getFieldEffectsById;
+
+/**
+ * Returns the first triggered page effect that points at an existing page.
+ * This is the same condition the form uses to decide whether the next click
+ * navigates or submits.
+ */
+export const getTriggeredPageEffect = (
+  schema: DocumentSchema,
+  pageId: SchemaId,
+  fieldData: FieldData,
+): PageEffect | undefined =>
+  getPageEffectsById(pageId, schema).find(
+    effect =>
+      isEffectTriggered(effect.fn, fieldData) &&
+      Boolean(schema.definitions.pages[effect.action.pageId]),
+  );
 
 /**
  * Returns the ids of all widgets that should be visible on `pageId` for the

@@ -2,10 +2,9 @@ import type { ReactNode } from "react";
 import { useFormContext, type SubmitHandler } from "react-hook-form";
 import { useSchema } from "../schema-provider";
 import {
-  getPageEffects,
+  getTriggeredPageEffect,
   getVisibleFieldData,
   getVisiblePageData,
-  isEffectTriggered,
 } from "../schema/effects";
 import type { FieldData, PageData } from "../schema/types";
 import { useSchemaStateManager } from "../state";
@@ -38,10 +37,10 @@ const SchemaForm = (props: Props) => {
       [currentPage]: currentPageData,
     };
 
-    const triggeredPageEffect = getPageEffects(currentPage, schema).find(
-      effect =>
-        isEffectTriggered(effect.fn, currentPageData) &&
-        Boolean(schema.definitions.pages[effect.action.pageId]),
+    const triggeredPageEffect = getTriggeredPageEffect(
+      schema,
+      currentPage,
+      currentPageData,
     );
 
     if (triggeredPageEffect) {

@@ -6,8 +6,10 @@ import {
   type FieldValues,
   useForm,
   useFormContext,
+  useWatch,
 } from "react-hook-form";
 import { SchemaProvider, useSchema } from "../schema-provider";
+import { getTriggeredPageEffect, getVisibleFieldData } from "../schema/effects";
 import type { DocumentSchema, FieldData } from "../schema/types";
 import { SchemaStateManager, useSchemaStateManager } from "../state";
 import { getSchemaDefaultValues } from "../defaults";
@@ -34,9 +36,29 @@ const FormContent = (props: FormContentProps) => {
   const schema = useSchema();
   const stateManager = useSchemaStateManager();
 
+  const watchedValues = (useWatch({ control: form.control }) ??
+    {}) as FieldData;
+
   const submitButtonRef = React.useRef<HTMLButtonElement>(null);
 
   if (!stateManager) return null;
+
+  const currentPageData = getVisibleFieldData(
+    watchedValues,
+    stateManager.state.visibleWidgets,
+  );
+
+  const triggeredPageEffect = schema
+    ? getTriggeredPageEffect(
+        schema,
+        stateManager.state.currentPage,
+        currentPageData,
+      )
+    : undefined;
+
+  const submitButtonText = triggeredPageEffect
+    ? "Next"
+    : schema?.submitButtonText ?? "Submit";
 
   const handleSubmitClick = () => {
     submitButtonRef.current?.click();
@@ -84,7 +106,7 @@ const FormContent = (props: FormContentProps) => {
         submitButton={
           <SubmitButton
             sx={sx.submitButton}
-            text={schema?.submitButtonText ?? "Submit"}
+            text={submitButtonText}
             onClick={handleSubmitClick}
           />
         }
