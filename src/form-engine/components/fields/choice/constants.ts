@@ -1,0 +1,1 @@
+export const SELECT_OPTIONS_THRESHOLD = 5;

@@ -12,6 +12,9 @@ node_modules
 dist
 dist-ssr
 *.local
+*.tsbuildinfo
+coverage
+.vite
 mock.ts
 
 # Editor directories and files

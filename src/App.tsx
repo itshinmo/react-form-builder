@@ -1,7 +1,5 @@
-import { CreateForm } from "views";
+import { FormBuilder } from "form-builder";
 
-const App = () => {
-  return <CreateForm />;
-};
+const App = () => <FormBuilder />;
 
 export default App;
