@@ -58,10 +58,13 @@
       }
     },
     {
-      "files": ["./vite.config.ts"],
+      "files": ["./vite.config.ts", "./vitest.config.ts"],
       "parserOptions": {
         "sourceType": "module",
         "project": ["./tsconfig.node.json"]
+      },
+      "rules": {
+        "import/no-unresolved": "off"
       }
     }
   ],
