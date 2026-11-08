@@ -77,18 +77,33 @@ npm run dev
 
 ## Scripts
 
-| Command            | Description                                      |
-| ------------------ | ------------------------------------------------ |
-| `yarn dev`         | Start the Vite development server.               |
-| `yarn build`       | Type-check and create a production build in `dist/`. |
-| `yarn preview`     | Preview the production build locally.            |
-| `yarn typecheck`   | Run `tsc --noEmit`.                              |
-| `yarn lint`        | Run ESLint with zero warnings allowed.           |
-| `yarn test`        | Run the Vitest suite once.                       |
-| `yarn test:watch`  | Run Vitest in watch mode.                        |
-| `yarn deploy`      | Build and publish `dist/` to GitHub Pages.       |
+| Command           | Description                                          |
+| ----------------- | ---------------------------------------------------- |
+| `yarn dev`        | Start the Vite development server.                   |
+| `yarn build`      | Type-check and create a production build in `dist/`. |
+| `yarn preview`    | Preview the production build locally.                |
+| `yarn typecheck`  | Run `tsc --noEmit`.                                  |
+| `yarn lint`       | Run ESLint with zero warnings allowed.               |
+| `yarn test`       | Run the Vitest suite once.                           |
+| `yarn test:watch` | Run Vitest in watch mode.                            |
+| `yarn deploy`     | Manual legacy deploy to the `gh-pages` branch.       |
 
 The production base path is `/react-form-builder` because the app is deployed as a GitHub Pages project page. If you host it at a different path, update `base` in `vite.config.ts` and `homepage` in `package.json`.
+
+## Deployment
+
+Deployment is automated by `.github/workflows/deploy.yml`:
+
+- Every push to `main` installs dependencies, lints, tests and builds the app, then publishes `dist/` to GitHub Pages.
+- The workflow can also be started manually from the **Actions** tab (`workflow_dispatch`).
+- Pull requests/uploads are not published; only `main` (or a manual run) deploys.
+
+One-time repository setup:
+
+1. Open **Settings → Pages** for the repository.
+2. Under **Build and deployment → Source**, choose **GitHub Actions**.
+
+The older `yarn deploy` command still builds and pushes `dist/` to the `gh-pages` branch. It is only useful if Pages is configured to serve from that branch; with the recommended **GitHub Actions** source, use the workflow instead.
 
 ## How to use the builder
 
@@ -204,15 +219,15 @@ Minimal example with one page and one string field:
 
 All widgets have `id`, `pageId`, `kind` and `type`.
 
-| Kind    | Type      | Main properties                                                                    |
-| ------- | --------- | ---------------------------------------------------------------------------------- |
+| Kind    | Type      | Main properties                                                                                                         |
+| ------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `field` | `string`  | `label`, `inputType` (`text`/`email`), `placeholder`, `multiline`, `minLength`, `maxLength`, `defaultValue`, `required` |
-| `field` | `number`  | `label`, `placeholder`, `min`, `max`, `defaultValue`, `required`                   |
-| `field` | `boolean` | `label`, `defaultChecked`, `required`                                              |
-| `field` | `choice`  | `label`, `options`, `multiSelect`, `shuffleOptions`, `minRequired`, `maxRequired`, `defaultValue`, `required` |
-| `ui`    | `text`    | `label` (builder only), `text`, `variant` (`paragraph`/`title`/`subtitle`)         |
-| `ui`    | `link`    | `label` (builder only), `text`, `href`                                             |
-| `ui`    | `divider` | `label` (builder only)                                                             |
+| `field` | `number`  | `label`, `placeholder`, `min`, `max`, `defaultValue`, `required`                                                        |
+| `field` | `boolean` | `label`, `defaultChecked`, `required`                                                                                   |
+| `field` | `choice`  | `label`, `options`, `multiSelect`, `shuffleOptions`, `minRequired`, `maxRequired`, `defaultValue`, `required`           |
+| `ui`    | `text`    | `label` (builder only), `text`, `variant` (`paragraph`/`title`/`subtitle`)                                              |
+| `ui`    | `link`    | `label` (builder only), `text`, `href`                                                                                  |
+| `ui`    | `divider` | `label` (builder only)                                                                                                  |
 
 Example field effect:
 
