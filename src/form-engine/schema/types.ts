@@ -157,7 +157,12 @@ export type LogicalFn = {
   operands: [ComparisonFn, ComparisonFn];
 };
 
-export type Fn = ComparisonFn | LogicalFn;
+/** A condition that is always true. */
+export type AlwaysFn = {
+  type: "ALWAYS";
+};
+
+export type Fn = ComparisonFn | LogicalFn | AlwaysFn;
 
 export type FieldEffect = {
   id: SchemaId;

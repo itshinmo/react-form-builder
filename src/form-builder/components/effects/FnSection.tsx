@@ -1,16 +1,29 @@
-import { Button, Divider, Grid, Stack } from "@mui/material";
+import { Button, Divider, FormHelperText, Grid, Stack } from "@mui/material";
 import { produce } from "immer";
 import { useFormContext } from "react-hook-form";
-import { isLogicalFn, type Fn, type SchemaId } from "form-engine";
 import {
+  ComparisonType,
+  isAlwaysFn,
+  isLogicalFn,
+  type ComparisonFn,
+  type Effect,
+  type Fn,
+  type SchemaId,
+} from "form-engine";
+import { conditionTypeOptions } from "../../constants";
+import {
+  CONDITION_TYPE,
   EFFECT_NAME_SEPARATOR,
   FIRST_COMPARISON_FN_IDENTIFIER,
+  FN_IDENTIFIER,
   LOGICAL_FN_IDENTIFIER,
   SECOND_COMPARISON_FN_IDENTIFIER,
 } from "../../names";
 import { Fieldset } from "../../utils";
+import { ChoiceFormControl } from "../form-controls";
 import { useEffectEditorData } from "./effect-context";
 import { useEffectFieldNames } from "./hooks";
+import { createEffectNameGenerator } from "./utils";
 import ChainNodesSection from "./ChainNodesSection";
 import ComparisonNode from "./ComparisonNode";
 import LogicalNode from "./LogicalNode";
@@ -24,12 +37,19 @@ import {
 type Props = {
   fn: Fn;
   effectId: SchemaId;
+  effectType: Effect["type"];
+};
+
+const DEFAULT_COMPARISON: ComparisonFn = {
+  type: ComparisonType.EQ,
+  fieldId: "",
+  value: "",
 };
 
 const FnSection = (props: Props) => {
-  const { fn, effectId } = props;
+  const { fn, effectId, effectType } = props;
 
-  const { unregister } = useFormContext();
+  const { unregister, watch, getValues } = useFormContext();
   const { fnFieldNames } = useEffectFieldNames(effectId);
   const effectEditorData = useEffectEditorData();
 
@@ -37,8 +57,77 @@ const FnSection = (props: Props) => {
 
   const { setAllEffects, allEffects } = effectEditorData;
 
-  if (isLogicalFn(fn)) {
-    const [first, second] = fn.operands;
+  const conditionTypeFieldName =
+    createEffectNameGenerator(effectId)(CONDITION_TYPE);
+
+  const watchedConditionType = watch(conditionTypeFieldName) as
+    | string
+    | undefined;
+
+  const conditionType =
+    watchedConditionType ?? (isAlwaysFn(fn) ? "always" : "comparison");
+
+  const isAlways = effectType === "page" && conditionType === "always";
+  const displayFn: Fn = isAlwaysFn(fn) ? DEFAULT_COMPARISON : fn;
+
+  const updateEffectFn = (newFn: Fn) => {
+    setAllEffects(
+      produce(allEffects, effectsDraft => {
+        const effect = effectsDraft.find(item => item.id === effectId);
+        if (effect) effect.fn = newFn;
+      }),
+    );
+  };
+
+  const handleConditionTypeChange = (value: string | string[]) => {
+    const nextConditionType = String(value);
+
+    if (nextConditionType === "always") {
+      const effectPrefix = `${effectId}${EFFECT_NAME_SEPARATOR}`;
+
+      Object.keys(getValues()).forEach(name => {
+        if (name.startsWith(effectPrefix) && name.includes(FN_IDENTIFIER)) {
+          unregister(name);
+        }
+      });
+
+      updateEffectFn({ type: "ALWAYS" });
+      return;
+    }
+
+    if (isAlwaysFn(fn)) {
+      updateEffectFn(DEFAULT_COMPARISON);
+    }
+  };
+
+  const conditionTypeControl =
+    effectType === "page" ? (
+      <ChoiceFormControl
+        name={conditionTypeFieldName}
+        label="Condition type"
+        multiSelect={false}
+        options={conditionTypeOptions}
+        defaultValue={conditionType}
+        onChange={handleConditionTypeChange}
+        size="small"
+        required
+      />
+    ) : null;
+
+  if (isAlways) {
+    return (
+      <Fieldset title="Conditions">
+        {conditionTypeControl}
+
+        <FormHelperText>
+          This effect runs every time the page is submitted.
+        </FormHelperText>
+      </Fieldset>
+    );
+  }
+
+  if (isLogicalFn(displayFn)) {
+    const [first, second] = displayFn.operands;
 
     const logicalFnFieldName = fnFieldNames.find(name =>
       name.includes(LOGICAL_FN_IDENTIFIER),
@@ -50,25 +139,20 @@ const FnSection = (props: Props) => {
       name.includes(SECOND_COMPARISON_FN_IDENTIFIER),
     );
 
-    if (!logicalFnFieldName || !firstFnFieldName || !secondFnFieldName) {
-      return null;
-    }
-
-    const logicalFnId = logicalFnFieldName.split(EFFECT_NAME_SEPARATOR)[1];
-    const firstFnId = firstFnFieldName.split(EFFECT_NAME_SEPARATOR)[1];
-    const secondFnId = secondFnFieldName.split(EFFECT_NAME_SEPARATOR)[1];
-
-    if (!logicalFnId || !firstFnId || !secondFnId) return null;
+    const logicalFnId =
+      logicalFnFieldName?.split(EFFECT_NAME_SEPARATOR)[1] ??
+      LOGICAL_FN_IDENTIFIER;
+    const firstFnId =
+      firstFnFieldName?.split(EFFECT_NAME_SEPARATOR)[1] ??
+      FIRST_COMPARISON_FN_IDENTIFIER;
+    const secondFnId =
+      secondFnFieldName?.split(EFFECT_NAME_SEPARATOR)[1] ??
+      SECOND_COMPARISON_FN_IDENTIFIER;
 
     const handleLogicalFnDelete = () => {
-      unregister(logicalFnFieldName);
+      if (logicalFnFieldName) unregister(logicalFnFieldName);
 
-      setAllEffects(
-        produce(allEffects, effectsDraft => {
-          const effect = effectsDraft.find(item => item.id === effectId);
-          if (effect) effect.fn = first;
-        }),
-      );
+      updateEffectFn(first);
 
       fnFieldNames.forEach(name => {
         if (name.includes(secondFnId)) unregister(name);
@@ -77,6 +161,8 @@ const FnSection = (props: Props) => {
 
     return (
       <Fieldset title="Conditions">
+        {conditionTypeControl}
+
         <Grid container columns={5} alignItems="center">
           <Grid item xs={COMPARISON_NODE_GRIDSIZE}>
             <NodeCard>
@@ -101,7 +187,7 @@ const FnSection = (props: Props) => {
                 <LogicalNode
                   effectId={effectId}
                   fnId={logicalFnId}
-                  operator={fn.type}
+                  operator={displayFn.type}
                   fnFieldNames={fnFieldNames}
                 />
 
@@ -133,28 +219,22 @@ const FnSection = (props: Props) => {
     );
   }
 
-  const comparisonFnFieldName = fnFieldNames.find(name =>
-    name.includes(FIRST_COMPARISON_FN_IDENTIFIER),
-  );
-
-  if (!comparisonFnFieldName) return null;
-
-  const fnId = comparisonFnFieldName.split(EFFECT_NAME_SEPARATOR)[1];
-
-  if (!fnId) return null;
+  const comparisonFn = displayFn;
 
   return (
     <Fieldset title="Conditions">
+      {conditionTypeControl}
+
       <Grid container columns={5} alignItems="center">
         <Grid item xs={COMPARISON_NODE_GRIDSIZE}>
           <NodeCard>
             <ComparisonNode
               effectId={effectId}
-              fnId={fnId}
+              fnId={FIRST_COMPARISON_FN_IDENTIFIER}
               fnFieldNames={fnFieldNames}
-              fieldId={fn.fieldId}
-              operator={fn.type}
-              value={fn.value}
+              fieldId={comparisonFn.fieldId}
+              operator={comparisonFn.type}
+              value={comparisonFn.value}
             />
           </NodeCard>
         </Grid>

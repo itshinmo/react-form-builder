@@ -49,6 +49,7 @@ export const PAGE_IDENTIFIER = "PAGE_";
 export const WIDGET_IDENTIFIER = "WIDGET_";
 
 export const EFFECT_TYPE = "effectType";
+export const CONDITION_TYPE = "conditionType";
 export const ACTION_TYPE = "actionType";
 export const ACTION_PAYLOAD = "actionPayload";
 export const OPERATOR = "operator";

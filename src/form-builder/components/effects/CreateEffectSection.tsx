@@ -24,11 +24,12 @@ import {
   type PageEffect,
 } from "form-engine";
 import { NUMBER_PATTERN } from "form-engine/validation";
-import { effectTypeOptions } from "../../constants";
+import { conditionTypeOptions, effectTypeOptions } from "../../constants";
 import { useFormStateManager } from "../../state";
 import { EFFECT_IDENTIFIER } from "../../names";
 import { Fieldset, isFieldWidgetNode, isPageNode } from "../../utils";
 import { useEditModalItem } from "../EditModalItemContext";
+import type { EffectConditionType } from "./types";
 import { generateEffectFieldValues, generateId } from "./utils";
 import { useEffectEditorData } from "./effect-context";
 import { useEffectActionOptions, useFieldComparisonOptions } from "./hooks";
@@ -41,6 +42,8 @@ const isEmptyValue = (value: unknown): boolean => {
 
 const CreateEffectSection = () => {
   const [effectType, setEffectType] = React.useState<EffectType | "">("");
+  const [conditionType, setConditionType] =
+    React.useState<EffectConditionType>("comparison");
   const [actionType, setActionType] = React.useState("");
   const [actionPayload, setActionPayload] = React.useState<string | string[]>(
     [],
@@ -61,6 +64,7 @@ const CreateEffectSection = () => {
 
   const resetStates = React.useCallback(() => {
     setEffectType("");
+    setConditionType("comparison");
     setActionType("");
     setActionPayload([]);
     setFieldId("");
@@ -69,14 +73,17 @@ const CreateEffectSection = () => {
     setExpectedValueErrorMessage("");
   }, []);
 
+  const isAlwaysCondition = effectType === "page" && conditionType === "always";
+
   const hasError =
     !effectType ||
     !actionType ||
     isEmptyValue(actionPayload) ||
-    !fieldId ||
-    !operator ||
-    isEmptyValue(expectedValue) ||
-    Boolean(expectedValueErrorMessage);
+    (!isAlwaysCondition &&
+      (!fieldId ||
+        !operator ||
+        isEmptyValue(expectedValue) ||
+        Boolean(expectedValueErrorMessage)));
 
   if (!effectEditorData || !effectActionOptions) return null;
   if (!currentPage || !isPageNode(currentPage)) return null;
@@ -91,6 +98,11 @@ const CreateEffectSection = () => {
     const newEffectType = event.target.value as EffectType;
 
     setEffectType(newEffectType);
+
+    if (newEffectType === "field") {
+      setConditionType("comparison");
+    }
+
     setActionType("");
     setActionPayload(newEffectType === "field" ? [] : "");
   };
@@ -128,11 +140,13 @@ const CreateEffectSection = () => {
     if (hasError || !effectType) return;
 
     const id = `${EFFECT_IDENTIFIER}${generateId()}`;
-    const fn: Fn = {
-      type: operator as ComparisonType,
-      fieldId,
-      value: expectedValue,
-    };
+    const fn: Fn = isAlwaysCondition
+      ? { type: "ALWAYS" }
+      : {
+          type: operator as ComparisonType,
+          fieldId,
+          value: expectedValue,
+        };
 
     let newEffect: Effect;
 
@@ -330,59 +344,88 @@ const CreateEffectSection = () => {
           </Select>
         </FormControl>
 
-        <Stack direction="row" alignItems="center" gap={1}>
-          <FormControl
-            margin="dense"
-            error={!fieldId}
-            size="small"
-            fullWidth
-            required
-          >
-            <InputLabel id="condition-widget-select-label">
-              Field widget
+        {effectType === "page" && (
+          <FormControl margin="dense" size="small" fullWidth required>
+            <InputLabel id="condition-type-select-label">
+              Condition type
             </InputLabel>
 
             <Select
-              labelId="condition-widget-select-label"
-              label="Field widget"
-              value={fieldId}
-              onChange={handleFieldWidgetChange}
+              labelId="condition-type-select-label"
+              label="Condition type"
+              value={conditionType}
+              onChange={event =>
+                setConditionType(event.target.value as EffectConditionType)
+              }
             >
-              {allFieldWidgetOptions.map(option => (
+              {conditionTypeOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
+        )}
 
-          <FormControl
-            margin="dense"
-            error={!operator}
-            size="small"
-            fullWidth
-            required
-          >
-            <InputLabel id="condition-operator-select-label">
-              Operator
-            </InputLabel>
-
-            <Select
-              labelId="condition-operator-select-label"
-              label="Operator"
-              value={operator}
-              onChange={event => setOperator(event.target.value)}
+        {isAlwaysCondition ? (
+          <FormHelperText>
+            This effect runs every time the page is submitted.
+          </FormHelperText>
+        ) : (
+          <Stack direction="row" alignItems="center" gap={1}>
+            <FormControl
+              margin="dense"
+              error={!fieldId}
+              size="small"
+              fullWidth
+              required
             >
-              {fieldComparisonOptions.map(option => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <InputLabel id="condition-widget-select-label">
+                Field widget
+              </InputLabel>
 
-          {renderExpectedValueInput()}
-        </Stack>
+              <Select
+                labelId="condition-widget-select-label"
+                label="Field widget"
+                value={fieldId}
+                onChange={handleFieldWidgetChange}
+              >
+                {allFieldWidgetOptions.map(option => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl
+              margin="dense"
+              error={!operator}
+              size="small"
+              fullWidth
+              required
+            >
+              <InputLabel id="condition-operator-select-label">
+                Operator
+              </InputLabel>
+
+              <Select
+                labelId="condition-operator-select-label"
+                label="Operator"
+                value={operator}
+                onChange={event => setOperator(event.target.value)}
+              >
+                {fieldComparisonOptions.map(option => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {renderExpectedValueInput()}
+          </Stack>
+        )}
 
         <Stack direction="row" alignItems="center" gap={1} marginTop={1}>
           <Button
@@ -412,7 +455,7 @@ const CreateEffectSection = () => {
           </FormHelperText>
         )}
 
-        {expectedValueErrorMessage && (
+        {!isAlwaysCondition && expectedValueErrorMessage && (
           <FormHelperText error>{expectedValueErrorMessage}</FormHelperText>
         )}
       </>

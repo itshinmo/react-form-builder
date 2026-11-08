@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import type { FieldValues } from "react-hook-form";
 import {
   FieldActionType,
+  isAlwaysFn,
   isLogicalFn,
   LogicalType,
   PageActionType,
@@ -17,6 +18,7 @@ import {
 import {
   ACTION_PAYLOAD,
   ACTION_TYPE,
+  CONDITION_TYPE,
   EFFECT_NAME_SEPARATOR,
   EFFECT_TYPE,
   FIELD_ID,
@@ -51,6 +53,8 @@ export const generateFnFieldValues = (
   fn: Fn,
   effectId: SchemaId,
 ): Record<string, unknown> => {
+  if (isAlwaysFn(fn)) return {};
+
   if (isLogicalFn(fn)) {
     const logicalNames = createEffectNameGenerator(
       effectId,
@@ -98,6 +102,9 @@ export const generateEffectFieldValues = (effect: Effect): FieldValues => {
     [generateName(ACTION_TYPE)]: effect.action.type,
     [generateName(ACTION_PAYLOAD)]:
       effect.type === "field" ? effect.action.widgetIds : effect.action.pageId,
+    [generateName(CONDITION_TYPE)]: isAlwaysFn(effect.fn)
+      ? "always"
+      : "comparison",
     ...generateFnFieldValues(effect.fn, effect.id),
   };
 };
@@ -109,6 +116,13 @@ const getFnFromFormValues = (
   fieldValues: FieldValues,
   effectId: SchemaId,
 ): Fn => {
+  const generateName = createEffectNameGenerator(effectId);
+  const conditionType = fieldValues[generateName(CONDITION_TYPE)] as
+    | string
+    | undefined;
+
+  if (conditionType === "always") return { type: "ALWAYS" };
+
   const logicalNames = createEffectNameGenerator(
     effectId,
     LOGICAL_FN_IDENTIFIER,

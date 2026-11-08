@@ -6,6 +6,7 @@ export {
   getVisibleWidgetIds,
   isEffectTriggered,
   isFieldWidget,
+  isAlwaysFn,
   isLogicalFn,
 } from "./schema/effects";
 export { Form } from "./components";

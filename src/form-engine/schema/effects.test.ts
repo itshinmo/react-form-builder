@@ -79,6 +79,10 @@ describe("isEffectTriggered", () => {
     ).toBe(true);
   });
 
+  it("treats an ALWAYS condition as triggered", () => {
+    expect(isEffectTriggered({ type: "ALWAYS" }, {})).toBe(true);
+  });
+
   it("returns false when the compared widget has no value", () => {
     expect(isEffectTriggered(buildFn(), {})).toBe(false);
   });
@@ -401,5 +405,35 @@ describe("getTriggeredPageEffect", () => {
         WIDGET_gender: "male",
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("ALWAYS page effects", () => {
+  it("navigates from a page with no fields", () => {
+    const schema = createDocumentSchema({
+      pageIds: ["PAGE_EMPTY", "PAGE_NEXT"],
+      pages: {
+        PAGE_EMPTY: createPage("PAGE_EMPTY", {
+          effectIds: ["EFFECT_ALWAYS"],
+        }),
+        PAGE_NEXT: createPage("PAGE_NEXT"),
+      },
+      effects: {
+        EFFECT_ALWAYS: {
+          id: "EFFECT_ALWAYS",
+          owner: "PAGE_EMPTY",
+          type: "page",
+          fn: { type: "ALWAYS" },
+          action: {
+            type: PageActionType.GO_TO_PAGE,
+            pageId: "PAGE_NEXT",
+          },
+        },
+      },
+    });
+
+    const effect = getTriggeredPageEffect(schema, "PAGE_EMPTY", {});
+
+    expect(effect?.action.pageId).toBe("PAGE_NEXT");
   });
 });

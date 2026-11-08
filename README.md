@@ -137,6 +137,16 @@ Logical condition:
 }
 ```
 
+Always condition:
+
+```ts
+{
+  type: "ALWAYS";
+}
+```
+
+`ALWAYS` is useful for page effects on pages with no field widgets. In the builder it is available as **Condition type → Always** for page effects. Field effects still require a field comparison.
+
 Field effect action:
 
 ```ts
@@ -155,7 +165,7 @@ Page effect action:
 }
 ```
 
-Effect values are evaluated against the current form values. Hide effects are combined, so multiple triggered effects cannot accidentally make a hidden widget visible again.
+Effect values are evaluated against the current form values. Hide effects are combined, so multiple triggered effects cannot accidentally make a hidden widget visible again. `ALWAYS` page effects make it possible to navigate from a page that has no fields at all.
 
 ### Submission behavior
 

@@ -60,6 +60,11 @@ export const effectTypeOptions: ChoiceOption[] = [
   { label: "Page effect", value: "page" satisfies EffectType },
 ];
 
+export const conditionTypeOptions: ChoiceOption[] = [
+  { label: "Field condition", value: "comparison" },
+  { label: "Always", value: "always" },
+];
+
 export const stringInputTypeOptions: ChoiceOption[] = [
   { label: "Text", value: "text" },
   { label: "Email", value: "email" },

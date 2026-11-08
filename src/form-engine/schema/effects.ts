@@ -1,5 +1,6 @@
 import { ComparisonType, LogicalType } from "./constants";
 import type {
+  AlwaysFn,
   DocumentSchema,
   FieldData,
   FieldEffect,
@@ -17,6 +18,8 @@ export const isFieldWidget = (
 
 export const isLogicalFn = (fn: Fn): fn is LogicalFn =>
   fn.type === LogicalType.AND || fn.type === LogicalType.OR;
+
+export const isAlwaysFn = (fn: Fn): fn is AlwaysFn => fn.type === "ALWAYS";
 
 const containsValue = (
   actualValue: unknown,
@@ -74,6 +77,8 @@ const compare = (
  * Evaluates an effect condition against the current field values.
  */
 export const isEffectTriggered = (fn: Fn, fieldData: FieldData): boolean => {
+  if (isAlwaysFn(fn)) return true;
+
   if (isLogicalFn(fn)) {
     const [left, right] = fn.operands;
 

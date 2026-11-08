@@ -236,6 +236,24 @@ describe("effect form value conversion", () => {
     expect(getEffectsFromFormValues("PAGE_1", values)).toEqual([effect]);
   });
 
+  it("round-trips an always page effect", () => {
+    const effect: Effect = {
+      id: "EFFECT_ALWAYS",
+      owner: "PAGE_1",
+      type: "page",
+      fn: { type: "ALWAYS" },
+      action: {
+        type: PageActionType.GO_TO_PAGE,
+        pageId: "PAGE_2",
+      },
+    };
+
+    const values = generateEffectFieldValues(effect);
+
+    expect(values["EFFECT_ALWAYS~conditionType"]).toBe("always");
+    expect(getEffectsFromFormValues("PAGE_1", values)).toEqual([effect]);
+  });
+
   it("collects unique effect ids", () => {
     const values = {
       "EFFECT_1~effectType": "field",

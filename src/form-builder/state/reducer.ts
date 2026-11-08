@@ -1,11 +1,19 @@
 import { produce, type Draft } from "immer";
-import { isLogicalFn, type Effect, type Fn, type SchemaId } from "form-engine";
+import {
+  isAlwaysFn,
+  isLogicalFn,
+  type Effect,
+  type Fn,
+  type SchemaId,
+} from "form-engine";
 import type { CreateFormData, WidgetNode } from "../types";
 import { ActionType, type Action } from "./actions";
 
 export type State = CreateFormData;
 
 const fnReferencesWidget = (fn: Fn, widgetId: SchemaId): boolean => {
+  if (isAlwaysFn(fn)) return false;
+
   if (isLogicalFn(fn)) {
     return fn.operands.some(operand => fnReferencesWidget(operand, widgetId));
   }

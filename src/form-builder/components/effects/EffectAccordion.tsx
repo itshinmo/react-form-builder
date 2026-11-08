@@ -23,7 +23,11 @@ const EffectAccordion = (props: Props) => {
 
       <AccordionDetails>
         <ActionSection effect={effect} />
-        <FnSection fn={effect.fn} effectId={effect.id} />
+        <FnSection
+          fn={effect.fn}
+          effectId={effect.id}
+          effectType={effect.type}
+        />
       </AccordionDetails>
     </Accordion>
   );
